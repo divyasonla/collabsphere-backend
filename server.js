@@ -25,6 +25,9 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
+if (!process.env.JWT_SECRET) {
+  console.warn('WARNING: JWT_SECRET is not set. Auth token generation will fail on deployed server.');
+}
 // CORS: allow the deployed frontend origin or default to allow all in dev
 const FRONTEND_URL = process.env.FRONTEND_URL || process.env.ALLOWED_ORIGINS || null;
 const corsOptions = FRONTEND_URL
@@ -33,11 +36,19 @@ const corsOptions = FRONTEND_URL
 app.use(cors(corsOptions));
 // ensure preflight requests receive the same CORS headers
 app.options('*', cors(corsOptions));
+
+// Request logging for debugging deployed CORS/errors
+app.use((req, res, next) => {
+  console.log('Incoming request:', { method: req.method, path: req.path, origin: req.get('origin') });
+  next();
+});
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Connect DB
 connectDB(MONGO_URI).catch(err => console.error(err));
+
+console.log('CORS allowed origins:', FRONTEND_URL || 'all');
 
 app.get('/api', (req, res) => {
   res.send('CollabSphere API running');
@@ -52,9 +63,19 @@ app.use('/api/users', userRoutes);
 
 // Static serve uploads for direct access if needed (keep behind permission in controllers)
 app.use('/uploads', express.static(uploadsDir));
+
+// Simple health / landing route so GET / doesn't return 404
+app.get('/', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
+  res.send('CollabSphere API running');
+});
 // Error handler
 app.use((err, req, res, next) => {
-//   console.error(err.stack);
+  // log the error and ensure CORS header is present on error responses
+  console.error('Server error:', err.stack || err);
+  try {
+    res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
+  } catch (e) {}
   res.status(500).json({ message: 'Server error', error: err.message });
 });
 

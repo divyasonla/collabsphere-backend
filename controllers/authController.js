@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
 const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET not configured');
+  }
   return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
@@ -20,7 +23,8 @@ export const register = async (req, res) => {
       token: generateToken(user)
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    console.error('register error:', err.stack || err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
@@ -34,7 +38,8 @@ export const login = async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
     return res.json({ user: { id: user._id, name: user.name, email: user.email }, token: generateToken(user) });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    console.error('login error:', err.stack || err);
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
