@@ -45,10 +45,39 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Connect DB
-connectDB(MONGO_URI).catch(err => console.error(err));
-
+// Connect DB and start server only after successful DB connection
 console.log('CORS allowed origins:', FRONTEND_URL || 'all');
+
+(async () => {
+  try {
+    await connectDB(MONGO_URI);
+    app.get('/api', (req, res) => {
+      res.send('CollabSphere API running');
+    });
+
+    // Routes
+    app.use('/api/auth', authRoutes);
+    app.use('/api/projects', projectRoutes);
+    app.use('/api/notes', notesRoutes);
+    app.use('/api/files', fileRoutes);
+    app.use('/api/gemini', geminiRoutes);
+    app.use('/api/users', userRoutes);
+
+    // Static serve uploads for direct access if needed (keep behind permission in controllers)
+    app.use('/uploads', express.static(uploadsDir));
+
+    // Simple health / landing route so GET / doesn't return 404
+    app.get('/', (req, res) => {
+      res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
+      res.send('CollabSphere API running');
+    });
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error('Failed to start server due to DB error:', err.stack || err);
+    process.exit(1);
+  }
+})();
 
 app.get('/api', (req, res) => {
   res.send('CollabSphere API running');
