@@ -25,8 +25,14 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
-// Allow CORS including Authorization header for frontend requests
-app.use(cors({ origin: true, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
+// CORS: allow the deployed frontend origin or default to allow all in dev
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.ALLOWED_ORIGINS || null;
+const corsOptions = FRONTEND_URL
+  ? { origin: FRONTEND_URL.split(',').map(s => s.trim()), credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }
+  : { origin: true, credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] };
+app.use(cors(corsOptions));
+// ensure preflight requests receive the same CORS headers
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
