@@ -33,6 +33,9 @@ app.use(express.urlencoded({ extended: true }));
 // Connect DB
 connectDB(MONGO_URI).catch(err => console.error(err));
 
+app.get('/api', (req, res) => {
+  res.send('CollabSphere API running');
+});
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
