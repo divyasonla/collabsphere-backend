@@ -37,8 +37,14 @@ app.use(express.urlencoded({ extended: true }));
 //   next();
 // });
 
-// Connect DB
-connectDB(MONGO_URI).catch(err => console.error(err));
+// Connect DB only if MONGO_URI is provided. In serverless environments
+// the environment variable may be set in deployment settings; avoid
+// throwing synchronously here which crashes the function on import.
+if (MONGO_URI) {
+  connectDB(MONGO_URI).catch(err => console.error('DB connection error:', err));
+} else {
+  console.warn('MONGO_URI not set - skipping DB connection');
+}
 
 // Routes
 app.get('/api', (req, res) => res.json({ status: 'ok' }));
@@ -58,4 +64,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Server error', error: err.message });
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Export the app for serverless platforms (Vercel) and local start
+export default app;
+
+// Only listen when running locally (not in Vercel serverless environment)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
