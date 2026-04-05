@@ -5,7 +5,6 @@ export const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.warn('Auth middleware: missing or malformed Authorization header', { headers: req.headers });
       return res.status(401).json({ message: 'Not authorized' });
     }
     const token = authHeader.split(' ')[1];
@@ -15,7 +14,6 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (err) {
-    console.error('Auth middleware error:', err.message);
     return res.status(401).json({ message: 'Not authorized', error: err.message });
   }
 };

@@ -6,6 +6,7 @@ const ProjectSchema = new mongoose.Schema({
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   isPublic: { type: Boolean, default: false },
+  publicId: { type: String, unique: true, sparse: true },
   createdAt: { type: Date, default: Date.now }
 });
 
