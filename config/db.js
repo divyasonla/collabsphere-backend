@@ -1,18 +1,37 @@
 import mongoose from 'mongoose';
 
+// Connection cache for serverless environments to reuse existing connection
+const cached = global._mongoose || (global._mongoose = { conn: null, promise: null });
+
 const connectDB = async (mongoUri) => {
   if (!mongoUri) throw new Error('MONGO_URI is not defined');
-  try {
-    // Add a serverSelectionTimeoutMS so failed connections fail fast in serverless
-    await mongoose.connect(mongoUri, {
+
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      // Fail faster in serverless so errors surface quickly
       serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
+    };
+
+    cached.promise = mongoose.connect(mongoUri, opts).then((mongooseInstance) => {
+      return mongooseInstance;
     });
+  }
+
+  try {
+    cached.conn = await cached.promise;
     console.log('MongoDB connected');
+    return cached.conn;
   } catch (err) {
-    // Log the error but do not exit the process; let the caller decide how to handle it.
-    console.error('MongoDB connection error:', err.message || err);
+    console.error('MongoDB connection error:', err?.message || err);
+    // Clear cached promise so subsequent invocations may retry
+    cached.promise = null;
     throw err;
   }
 };
