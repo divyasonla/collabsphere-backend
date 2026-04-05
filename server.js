@@ -22,7 +22,18 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const app = express();
-app.use(cors());
+
+// Configure CORS: allow the frontend origin from environment or allow all in dev
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.VITE_API_BASE || '*';
+app.use(cors({
+  origin: FRONTEND_URL === '*' ? '*' : FRONTEND_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
+
+// Ensure preflight requests are handled for all routes
+app.options('*', cors());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
