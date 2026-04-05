@@ -64,3 +64,23 @@ export const getNotesByProject = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+export const getPublicNotesByProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // support lookup by publicId or ObjectId
+    let project = null;
+    if (/^[0-9a-fA-F]{24}$/.test(id)) {
+      project = await Project.findById(id);
+    }
+    if (!project) {
+      project = await Project.findOne({ publicId: id });
+    }
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project.isPublic) return res.status(403).json({ message: 'Project not public' });
+    const notes = await Note.find({ project: project._id }).populate('author', 'name email');
+    return res.json(notes);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};

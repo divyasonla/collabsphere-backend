@@ -72,3 +72,22 @@ export const getFilesByProject = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+export const getPublicFilesByProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let project = null;
+    if (/^[0-9a-fA-F]{24}$/.test(id)) {
+      project = await Project.findById(id);
+    }
+    if (!project) {
+      project = await Project.findOne({ publicId: id });
+    }
+    if (!project) return res.status(404).json({ message: 'Project not found' });
+    if (!project.isPublic) return res.status(403).json({ message: 'Project not public' });
+    const files = await FileModel.find({ project: project._id }).populate('uploader', 'name email');
+    return res.json(files);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
