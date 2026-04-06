@@ -25,15 +25,18 @@ const app = express();
 
 // Configure CORS: allow the frontend origin from environment or allow all in dev
 const FRONTEND_URL = process.env.FRONTEND_URL || process.env.VITE_API_BASE || '*';
-app.use(cors({
-  origin: FRONTEND_URL === '*' ? '*' : FRONTEND_URL,
-  credentials: true,
+const corsOptions = {
+  // when FRONTEND_URL is '*', allow any origin but disable credentials
+  origin: FRONTEND_URL === '*' ? true : FRONTEND_URL,
+  credentials: FRONTEND_URL === '*' ? false : true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
-}));
+};
+console.log('CORS configured. frontend allowed origin:', FRONTEND_URL === '*' ? 'any' : FRONTEND_URL);
+app.use(cors(corsOptions));
 
-// Ensure preflight requests are handled for all routes
-app.options('*', cors());
+// Ensure preflight requests are handled for all routes with same options
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
